@@ -28,9 +28,8 @@ def detect_img(yolo):
     if os.path.isdir(img):
         for path, subdirs, files in os.walk(img):
             for title in files:
-                fileExt = os.path.splitext(title)[-1]
                 name = os.path.splitext(title)[0]
-                if fileExt.lower() == '.jpg':
+                if title.endswith(tuple(['.jpg', '.png', 'jpeg'])):
                     print('Processing %s image' % (title))
                     try:
                         image = Image.open(os.path.join(path, title))
