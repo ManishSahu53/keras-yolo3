@@ -11,7 +11,7 @@ TINY_WEIGHTS = 'model_data/tiny_yolo_weights.h5'
 SCORE = 0.6
 IOU = 0.65
 NUM_GPU = 1
-EPOCH = 10
+EPOCH = 50
 BATCH_SIZE = 8
 
 

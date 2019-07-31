@@ -12,8 +12,69 @@ from keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnPlateau, Ear
 from yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_loss
 from yolo3.utils import get_random_data
 import config
+import argparse
+
 
 def _main():
+    parser = argparse.ArgumentParser(
+        description='Annotations to yolo bbox converter')
+    parser.add_argument('-d', '--data',
+                        help='Input file containing annotation path and image path',
+                        required=True)
+
+    parser.add_argument('-c', '--classes',
+                        help='Input file containing classes',
+                        default=config.CLASSES,
+                        required=False)
+
+    parser.add_argument('-a', '--anchor',
+                        help='Input file containing anchors',
+                        default=config.ANCHORS,
+                        required=False)
+
+    parser.add_argument('-s', '--size', type=int,
+                        help='Input file size. [Default] - 416x416',
+                        default=config.IMAGE_SIZE,
+                        required=False)
+
+    parser.add_argument('-o', '--output',
+                        help='output txt file. [Default] - Annotation.txt',
+                        default=config.ANNOTATATIONS,
+                        required=False)
+
+    parser.add_argument('-e', '--epoch', type=int,
+                        help='Enter number of epochs for training. [Default] 10',
+                        default=config.EPOCH,
+                        required=False)
+
+    parser.add_argument('-b', '--batch', type=int,
+                        help='Enter number of batch size for training. [Default] 4',
+                        default=config.BATCH_SIZE,
+                        required=False)
+
+    # Parsing arguments
+    args = parser.parse_args()
+
+    path_annotation = args.data
+    log_dir = config.LOGS
+    path_classes = args.classes
+    path_anchors = args.anchor
+    size = args.size
+    class_names = get_classes(path_classes)
+    num_classes = len(class_names)
+    anchors = get_anchors(path_anchors)
+    epoch = args.epoch
+    batch_size = args.batch
+
+    print('path_annotation : %s' % (path_annotation))
+    print('path_classes : %s' % (path_classes))
+    print('path_anchors : %s' % (path_anchors))
+    print('size : %d' % (size))
+    print('class_names : %s' % (class_names))
+    print('anchors : %s' % (anchors))
+    print('log_dir : %s' % (log_dir))
+    print('epoch : %s' % (epoch))
+
     annotation_path = config.ANNOTATATIONS
     log_dir = config.LOGS
     classes_path = config.CLASSES
