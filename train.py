@@ -11,26 +11,87 @@ from keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnPlateau, Ear
 
 from yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_loss
 from yolo3.utils import get_random_data
+import config
+import argparse
 
 
 def _main():
-    annotation_path = 'train.txt'
-    log_dir = 'logs/000/'
-    classes_path = 'model_data/voc_classes.txt'
-    anchors_path = 'model_data/yolo_anchors.txt'
+    parser = argparse.ArgumentParser(
+        description='Annotations to yolo bbox converter')
+    parser.add_argument('-d', '--data',
+                        help='Input file containing annotation path and image path',
+                        required=True)
+
+    parser.add_argument('-c', '--classes',
+                        help='Input file containing classes',
+                        default=config.CLASSES,
+                        required=False)
+
+    parser.add_argument('-a', '--anchor',
+                        help='Input file containing anchors',
+                        default=config.ANCHORS,
+                        required=False)
+
+    parser.add_argument('-s', '--size', type=int,
+                        help='Input file size. [Default] - 416x416',
+                        default=config.IMAGE_SIZE,
+                        required=False)
+
+    parser.add_argument('-o', '--output',
+                        help='output txt file. [Default] - Annotation.txt',
+                        default=config.ANNOTATATIONS,
+                        required=False)
+
+    parser.add_argument('-e', '--epoch', type=int,
+                        help='Enter number of epochs for training. [Default] 10',
+                        default=config.EPOCH,
+                        required=False)
+
+    parser.add_argument('-b', '--batch', type=int,
+                        help='Enter number of batch size for training. [Default] 4',
+                        default=config.BATCH_SIZE,
+                        required=False)
+
+    # Parsing arguments
+    args = parser.parse_args()
+
+    path_annotation = args.data
+    log_dir = config.LOGS
+    path_classes = args.classes
+    path_anchors = args.anchor
+    size = args.size
+    class_names = get_classes(path_classes)
+    num_classes = len(class_names)
+    anchors = get_anchors(path_anchors)
+    epoch = args.epoch
+    batch_size = args.batch
+
+    print('path_annotation : %s' % (path_annotation))
+    print('path_classes : %s' % (path_classes))
+    print('path_anchors : %s' % (path_anchors))
+    print('size : %d' % (size))
+    print('class_names : %s' % (class_names))
+    print('anchors : %s' % (anchors))
+    print('log_dir : %s' % (log_dir))
+    print('epoch : %s' % (epoch))
+
+    annotation_path = config.ANNOTATATIONS
+    log_dir = config.LOGS
+    classes_path = config.CLASSES
+    anchors_path = config.ANCHORS
     class_names = get_classes(classes_path)
     num_classes = len(class_names)
     anchors = get_anchors(anchors_path)
 
-    input_shape = (416,416) # multiple of 32, hw
+    input_shape = (config.IMAGE_SIZE, config.IMAGE_SIZE) # multiple of 32, hw
 
     is_tiny_version = len(anchors)==6 # default setting
     if is_tiny_version:
         model = create_tiny_model(input_shape, anchors, num_classes,
-            freeze_body=2, weights_path='model_data/tiny_yolo_weights.h5')
+            freeze_body=2, weights_path=config.TINY_WEIGHTS)
     else:
         model = create_model(input_shape, anchors, num_classes,
-            freeze_body=2, weights_path='model_data/yolo_weights.h5') # make sure you know what you freeze
+            freeze_body=2, weights_path=config.WEIGHTS) # make sure you know what you freeze
 
     logging = TensorBoard(log_dir=log_dir)
     checkpoint = ModelCheckpoint(log_dir + 'ep{epoch:03d}-loss{loss:.3f}-val_loss{val_loss:.3f}.h5',
@@ -54,16 +115,16 @@ def _main():
             # use custom yolo_loss Lambda layer.
             'yolo_loss': lambda y_true, y_pred: y_pred})
 
-        batch_size = 32
+        batch_size = config.BATCH_SIZE
         print('Train on {} samples, val on {} samples, with batch size {}.'.format(num_train, num_val, batch_size))
         model.fit_generator(data_generator_wrapper(lines[:num_train], batch_size, input_shape, anchors, num_classes),
                 steps_per_epoch=max(1, num_train//batch_size),
                 validation_data=data_generator_wrapper(lines[num_train:], batch_size, input_shape, anchors, num_classes),
                 validation_steps=max(1, num_val//batch_size),
-                epochs=50,
+                epochs=config.EPOCH,
                 initial_epoch=0,
                 callbacks=[logging, checkpoint])
-        model.save_weights(log_dir + 'trained_weights_stage_1.h5')
+        model.save_weights(log_dir + '/trained_weights_stage_1.h5')
 
     # Unfreeze and continue training, to fine-tune.
     # Train longer if the result is not good.
@@ -73,16 +134,16 @@ def _main():
         model.compile(optimizer=Adam(lr=1e-4), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
         print('Unfreeze all of the layers.')
 
-        batch_size = 32 # note that more GPU memory is required after unfreezing the body
+        batch_size = config.BATCH_SIZE # note that more GPU memory is required after unfreezing the body
         print('Train on {} samples, val on {} samples, with batch size {}.'.format(num_train, num_val, batch_size))
         model.fit_generator(data_generator_wrapper(lines[:num_train], batch_size, input_shape, anchors, num_classes),
             steps_per_epoch=max(1, num_train//batch_size),
             validation_data=data_generator_wrapper(lines[num_train:], batch_size, input_shape, anchors, num_classes),
             validation_steps=max(1, num_val//batch_size),
-            epochs=100,
-            initial_epoch=50,
+            epochs=config.EPOCH*4,
+            initial_epoch=config.EPOCH,
             callbacks=[logging, checkpoint, reduce_lr, early_stopping])
-        model.save_weights(log_dir + 'trained_weights_final.h5')
+        model.save_weights(log_dir + '/trained_weights_final.h5')
 
     # Further training if needed.
 
@@ -103,7 +164,7 @@ def get_anchors(anchors_path):
 
 
 def create_model(input_shape, anchors, num_classes, load_pretrained=True, freeze_body=2,
-            weights_path='model_data/yolo_weights.h5'):
+            weights_path=config.WEIGHTS):
     '''create the training model'''
     K.clear_session() # get a new session
     image_input = Input(shape=(None, None, 3))
@@ -133,7 +194,7 @@ def create_model(input_shape, anchors, num_classes, load_pretrained=True, freeze
     return model
 
 def create_tiny_model(input_shape, anchors, num_classes, load_pretrained=True, freeze_body=2,
-            weights_path='model_data/tiny_yolo_weights.h5'):
+            weights_path=config.TINY_WEIGHTS):
     '''create the training model, for Tiny YOLOv3'''
     K.clear_session() # get a new session
     image_input = Input(shape=(None, None, 3))
