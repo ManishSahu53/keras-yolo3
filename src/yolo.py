@@ -17,16 +17,17 @@ from yolo3.model import yolo_eval, yolo_body, tiny_yolo_body
 from yolo3.utils import letterbox_image
 import os
 from keras.utils import multi_gpu_model
+import config
 
 class YOLO(object):
     _defaults = {
-        "model_path": 'model_data/yolo.h5',
-        "anchors_path": 'model_data/yolo_anchors.txt',
-        "classes_path": 'model_data/coco_classes.txt',
-        "score" : 0.3,
-        "iou" : 0.45,
-        "model_image_size" : (416, 416),
-        "gpu_num" : 1,
+        "model_path": config.WEIGHTS,
+        "anchors_path": config.ANCHORS,
+        "classes_path": config.CLASSES,
+        "score" : config.SCORE,
+        "iou" : config.IOU,
+        "model_image_size" : (config.IMAGE_SIZE, config.IMAGE_SIZE),
+        "gpu_num" : config.NUM_GPU,
     }
 
     @classmethod

@@ -1,6 +1,6 @@
 IMAGE_SIZE = 416
 CLASSES = 'model_data/friends_classes.txt'
-WEIGHTS = 'model_data/yolo_weights.h5'
+WEIGHTS = 'logs/final.h5'
 ANCHORS = 'model_data/yolo_anchors.txt'
 ANNOTATATIONS = 'model_data/annotation.txt'
 LOGS = 'logs/000'
@@ -12,6 +12,8 @@ SCORE = 0.4
 IOU = 0.65
 NUM_GPU = 1
 EPOCH = 10
+BATCH_SIZE = 8
+
 
 # Mapping
 MAPPING = {
