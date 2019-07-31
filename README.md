@@ -1,7 +1,5 @@
 # keras-yolo3
 
-[![license](https://img.shields.io/github/license/mashape/apistatus.svg)](LICENSE)
-
 ## Introduction
 
 A Keras implementation of YOLOv3 (Tensorflow backend) inspired by [allanzelener/YAD2K](https://github.com/allanzelener/YAD2K).
@@ -23,6 +21,14 @@ python yolo_video.py [video_path] [output_path (optional)]
 ```
 
 For Tiny YOLOv3, just do in a similar way, just specify model path and anchor path with `--model model_file` and `--anchors anchor_file`.
+
+
+## How to Train
+1. Generate annotation.txt from src/generate_annotations.py file
+2. Then edit config.py accordingly
+3. ``` python train.py -d model_data/annotation.txt ```
+4. Then Predict using test.py
+5. ```python test.py --image data/all ```
 
 ### Usage
 Use --help to see usage of yolo_video.py:
